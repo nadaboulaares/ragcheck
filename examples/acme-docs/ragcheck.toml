@@ -1,0 +1,21 @@
+# ragcheck config for the demo. Run from the repo root:
+#   ragcheck run --config examples/acme-docs/ragcheck.toml --out runs/before.json
+cases = "questions.jsonl"
+k = 3
+
+[retriever]
+type = "bm25"
+corpus = "corpus"
+
+# For your own system, use for example:
+# [retriever]
+# type = "http"
+# url = "http://localhost:8000/search"
+# body = '{"query": "{query}", "top_k": {k}}'
+# results_path = "results"
+# id_field = "id"
+# answer_path = "answer"
+# headers = { Authorization = "Bearer ${SEARCH_API_KEY}" }
+
+[fail_under]
+recall = 0.6
