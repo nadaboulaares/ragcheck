@@ -1,7 +1,8 @@
-# ragcheck
+# ragcheck (`pip install ragmeter`)
 
 [![CI](https://github.com/nadaboulaares/ragcheck/actions/workflows/ci.yml/badge.svg)](https://github.com/nadaboulaares/ragcheck/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/ragmeter)](https://pypi.org/project/ragmeter/)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)
 
@@ -16,12 +17,12 @@ Most AI search gets tuned by vibes: someone tries a few questions, changes the c
 - **Before/after diffs**: which questions a change fixed, and which it broke
 - **CI gate**: exit code 1 when quality drops below your bar
 
-Zero dependencies (Python standard library only). Works with **any** system: an HTTP endpoint, a Python function, or the built-in keyword baseline.
+Zero dependencies (Python standard library only). On PyPI as **`ragmeter`**; the command is `ragmeter` (or `ragcheck`). Works with **any** system: an HTTP endpoint, a Python function, or the built-in keyword baseline.
 
 ## Try it in 10 seconds
 
 ```bash
-pip install git+https://github.com/nadaboulaares/ragcheck
+pip install ragmeter
 git clone https://github.com/nadaboulaares/ragcheck && cd ragcheck
 ragcheck run --config examples/acme-docs/ragcheck.toml --out runs/before.json
 cd examples/acme-docs
@@ -103,7 +104,7 @@ ragcheck compare runs/before.json runs/after.json --fail-on-regression
 ## In CI
 
 ```yaml
-- run: pip install git+https://github.com/nadaboulaares/ragcheck
+- run: pip install ragmeter
 - run: ragcheck run --config ragcheck.toml --fail-under recall=0.85 --fail-under mrr=0.7
 ```
 

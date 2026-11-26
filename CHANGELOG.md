@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — first PyPI release as `ragmeter`
+
+- Published on PyPI as **`ragmeter`** (`ragcheck` was taken). Commands `ragmeter` and `ragcheck` both work;
+  the import name stays `ragcheck`.
 
 - **Per-category breakdown.** Questions can carry `"tags": [...]`; every report adds a *By category* table
   (worst first), and `compare` shows recall before/after per category. Runs saved without tags still load.

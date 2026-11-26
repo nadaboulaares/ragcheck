@@ -376,3 +376,13 @@ def test_runs_saved_before_tags_existed_still_load(tmp_path):
     f.write_text(json.dumps(old))
     loaded = Run.load(f)
     assert loaded.cases[0].tags == [] and loaded.summary["recall@3"] == 1.0
+
+
+def test_version_matches_pyproject():
+    import tomllib
+
+    import ragcheck
+
+    meta = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    assert ragcheck.__version__ == meta["version"]
+    assert meta["name"] == "ragmeter"  # the PyPI name; `ragcheck` is taken there

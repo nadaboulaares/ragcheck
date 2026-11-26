@@ -110,7 +110,7 @@ def cmd_compare(args) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="ragcheck", description="Measure any RAG / AI search system.")
+    ap = argparse.ArgumentParser(description="Measure any RAG / AI search system.")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     r = sub.add_parser("run", help="evaluate a system against a question set")
