@@ -385,4 +385,4 @@ def test_version_matches_pyproject():
 
     meta = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     assert ragcheck.__version__ == meta["version"]
-    assert meta["name"] == "ragmeter"  # the PyPI name; `ragcheck` is taken there
+    assert meta["name"] == "retrievalcheck"  # PyPI name: ragcheck is taken, ragmeter ~ rag-meter

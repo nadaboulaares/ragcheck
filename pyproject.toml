@@ -1,5 +1,5 @@
 [project]
-name = "ragmeter"
+name = "retrievalcheck"
 version = "0.2.0"
 description = "Measure any RAG or AI search system in one command: recall, MRR, nDCG, answer accuracy, latency — and compare before/after."
 readme = "README.md"
@@ -32,7 +32,6 @@ Changelog = "https://github.com/nadaboulaares/ragcheck/blob/main/CHANGELOG.md"
 dev = ["pytest>=8"]
 
 [project.scripts]
-ragmeter = "ragcheck.cli:main"
 ragcheck = "ragcheck.cli:main"
 
 [build-system]
