@@ -1,5 +1,10 @@
 # ragcheck
 
+[![CI](https://github.com/nadaboulaares/ragcheck/actions/workflows/ci.yml/badge.svg)](https://github.com/nadaboulaares/ragcheck/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)
+
 **Measure any RAG or AI search system in one command, and prove that a change made it better.**
 
 Most AI search gets tuned by vibes: someone tries a few questions, changes the chunk size, tries again. ragcheck replaces that with numbers. Give it real questions and the documents that should be found; it runs them against your system and reports:
@@ -7,6 +12,7 @@ Most AI search gets tuned by vibes: someone tries a few questions, changes the c
 - **Retrieval quality**: recall@k, precision@k, hit@k, MRR, nDCG@k
 - **Answer accuracy**: checks whether answers contain the facts they must contain (optional)
 - **Latency**: p50 / p95 / max, measured honestly (sequential by default)
+- **Per-category breakdown**: tag questions ("billing", "account"…) and see *where* the system fails, worst first
 - **Before/after diffs**: which questions a change fixed, and which it broke
 - **CI gate**: exit code 1 when quality drops below your bar
 
@@ -15,7 +21,8 @@ Zero dependencies (Python standard library only). Works with **any** system: an 
 ## Try it in 10 seconds
 
 ```bash
-pip install -e .
+pip install git+https://github.com/nadaboulaares/ragcheck
+git clone https://github.com/nadaboulaares/ragcheck && cd ragcheck
 ragcheck run --config examples/acme-docs/ragcheck.toml --out runs/before.json
 cd examples/acme-docs
 ragcheck run --cases questions.jsonl --python better_search:search -k 3 --out ../../runs/after.json
@@ -30,10 +37,18 @@ The demo is a fictional note-taking app's help center. Plain keyword search miss
 **1. Write questions** (`questions.jsonl`, one per line):
 
 ```json
-{"id": "refund", "query": "Can I get my money back?", "relevant": ["billing/refunds"], "answer_contains": ["30 days"]}
+{"id": "refund", "query": "Can I get my money back?", "relevant": ["billing/refunds"], "answer_contains": ["30 days"], "tags": ["billing"]}
 ```
 
-`relevant` holds the ids your system returns for the right documents. `answer_contains` is optional and only checked when the system returns an answer.
+`relevant` holds the ids your system returns for the right documents. `answer_contains` is optional and only checked when the system returns an answer. `tags` is optional; with it, every report adds a *By category* table:
+
+```
+| Category | Questions | Recall@3 | Hit@3 | MRR   |
+|----------|----------:|---------:|------:|------:|
+| features |         6 |    83.3% | 83.3% | 58.3% |   ← look here first
+| billing  |         6 |    83.3% | 83.3% | 83.3% |
+| account  |         3 |   100.0% | 100.0%| 100.0%|
+```
 
 **2. Point ragcheck at it.**
 
@@ -88,7 +103,7 @@ ragcheck compare runs/before.json runs/after.json --fail-on-regression
 ## In CI
 
 ```yaml
-- run: pip install ragcheck
+- run: pip install git+https://github.com/nadaboulaares/ragcheck
 - run: ragcheck run --config ragcheck.toml --fail-under recall=0.85 --fail-under mrr=0.7
 ```
 

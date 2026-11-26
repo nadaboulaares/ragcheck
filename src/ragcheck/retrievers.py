@@ -12,9 +12,10 @@ import time
 import urllib.error
 import urllib.request
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 
 @dataclass
@@ -164,7 +165,7 @@ class BM25Retriever:
     def scores(self, query: str) -> list[float]:
         terms = tokenize(query)
         out = []
-        for doc, length in zip(self.docs, self.lengths):
+        for doc, length in zip(self.docs, self.lengths, strict=True):
             s = 0.0
             for t in terms:
                 tf = doc.get(t, 0)
@@ -175,7 +176,7 @@ class BM25Retriever:
 
     def retrieve(self, query: str, k: int) -> Retrieval:
         def call() -> Retrieval:
-            ranked = sorted(zip(self.scores(query), self.ids), key=lambda x: -x[0])
+            ranked = sorted(zip(self.scores(query), self.ids, strict=True), key=lambda x: -x[0])
             return Retrieval(ids=[doc_id for score, doc_id in ranked if score > 0][:k])
 
         return _timed(call)

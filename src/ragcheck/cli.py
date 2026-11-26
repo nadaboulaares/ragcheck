@@ -1,9 +1,9 @@
 """ragcheck command line.
 
-  ragcheck run --cases questions.jsonl --bm25 docs/            # keyword baseline
-  ragcheck run --cases questions.jsonl --http http://localhost:8000/search
-  ragcheck run --config ragcheck.toml --out runs/after.json --fail-under recall=0.8
-  ragcheck compare runs/before.json runs/after.json
+ragcheck run --cases questions.jsonl --bm25 docs/            # keyword baseline
+ragcheck run --cases questions.jsonl --http http://localhost:8000/search
+ragcheck run --config ragcheck.toml --out runs/after.json --fail-under recall=0.8
+ragcheck compare runs/before.json runs/after.json
 """
 
 from __future__ import annotations
@@ -71,8 +71,10 @@ def cmd_run(args) -> int:
     elif "retriever" in cfg:
         retriever = from_config(cfg["retriever"], base)
     else:
-        print("error: choose a system: --http URL, --python module:func, --bm25 DIR, or [retriever] in the config",
-              file=sys.stderr)
+        print(
+            "error: choose a system: --http URL, --python module:func, --bm25 DIR, or [retriever] in the config",
+            file=sys.stderr,
+        )
         return 2
 
     k = args.k or cfg.get("k", 5)
@@ -125,8 +127,13 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--out", help="save the full run as JSON (for compare)")
     r.add_argument("--html", help="also write a standalone HTML report")
     r.add_argument("--concurrency", type=int, default=1, help="parallel requests (default 1: honest latency)")
-    r.add_argument("--fail-under", action="append", default=[], metavar="METRIC=VALUE",
-                   help="exit 1 if a metric misses the bar, e.g. recall=0.8, latency_p95_ms=1500")
+    r.add_argument(
+        "--fail-under",
+        action="append",
+        default=[],
+        metavar="METRIC=VALUE",
+        help="exit 1 if a metric misses the bar, e.g. recall=0.8, latency_p95_ms=1500",
+    )
     r.set_defaults(func=cmd_run)
 
     c = sub.add_parser("compare", help="before/after diff of two saved runs")

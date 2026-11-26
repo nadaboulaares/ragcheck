@@ -38,6 +38,12 @@ def _fmt(key: str, value) -> str:
     return f"{value:.1%}"
 
 
+def _tag_rows(run: Run) -> list[tuple[str, dict]]:
+    """(tag, summary) sorted worst-first, so the weakest area of the system is on top."""
+    key = f"recall@{run.k}"
+    return sorted(run.by_tag().items(), key=lambda kv: (kv[1][key], kv[1]["mrr"], kv[0]))
+
+
 def markdown(run: Run, worst: int = 10) -> str:
     s = run.summary
     lines = [
@@ -49,10 +55,29 @@ def markdown(run: Run, worst: int = 10) -> str:
         "|---|---:|",
         *[f"| {_label(key)} | {_fmt(key, v)} |" for key, v in s.items()],
     ]
+    tag_rows = _tag_rows(run)
+    if tag_rows:
+        rk, hk = f"recall@{run.k}", f"hit@{run.k}"
+        lines += [
+            "",
+            "## By category",
+            "",
+            f"| Category | Questions | {_label(rk)} | {_label(hk)} | MRR |",
+            "|---|---:|---:|---:|---:|",
+            *[
+                f"| {tag} | {t['cases']} | {_fmt(rk, t[rk])} | {_fmt(hk, t[hk])} | {_fmt('mrr', t['mrr'])} |"
+                for tag, t in tag_rows
+            ],
+        ]
     failing = sorted((c for c in run.cases if c.recall < 1 or c.error), key=lambda c: (c.recall, c.rr))
     if failing:
-        lines += ["", f"## Questions that missed documents ({len(failing)} of {len(run.cases)})", "",
-                  "| Question | Missed | Got instead |", "|---|---|---|"]
+        lines += [
+            "",
+            f"## Questions that missed documents ({len(failing)} of {len(run.cases)})",
+            "",
+            "| Question | Missed | Got instead |",
+            "|---|---|---|",
+        ]
         for c in failing[:worst]:
             got = c.error or ", ".join(f"`{d}`" for d in c.retrieved[:3]) or "nothing"
             missed = ", ".join(f"`{d}`" for d in c.missed)
@@ -79,6 +104,18 @@ def comparison_markdown(cmp: Comparison) -> str:
         else:
             change = f"{delta * 100:+.1f} pts"
         lines.append(f"| {_label(key)} | {_fmt(key, b)} | {_fmt(key, a)} | {change} |")
+    if cmp.tag_deltas:
+        rk = f"recall@{cmp.before.k}"
+        lines += [
+            "",
+            "## By category",
+            "",
+            f"| Category | {_label(rk)} before | After | Change |",
+            "|---|---:|---:|---:|",
+        ]
+        for tag, (b, a, delta) in cmp.tag_deltas.items():
+            change = "—" if delta is None else f"{delta * 100:+.1f} pts"
+            lines.append(f"| {tag} | {_fmt(rk, b)} | {_fmt(rk, a)} | {change} |")
     for title, items in (("Fixed", cmp.fixed), ("Regressed", cmp.regressed)):
         if items:
             lines += ["", f"## {title} ({len(items)})", ""]
@@ -87,20 +124,33 @@ def comparison_markdown(cmp: Comparison) -> str:
 
 
 _CSS = """
-body{font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;max-width:960px;margin:40px auto;padding:0 20px;color:#1f2328}
+body{font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;max-width:960px;margin:40px auto;
+     padding:0 20px;color:#1f2328}
 h1{font-size:24px;margin-bottom:4px}.meta{color:#656d76;margin-bottom:24px}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:28px}
 .card{border:1px solid #d0d7de;border-radius:8px;padding:12px 14px}.card b{display:block;font-size:22px}
 .card span{color:#656d76;font-size:13px}table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{border-bottom:1px solid #d0d7de;padding:8px;text-align:left;vertical-align:top}th{background:#f6f8fa}
 code{background:#f6f8fa;padding:1px 4px;border-radius:4px;font-size:12.5px}
-.bad{color:#cf222e}footer{margin-top:32px;color:#656d76;font-size:13px}
+h2{margin-top:28px}.bad{color:#cf222e}footer{margin-top:32px;color:#656d76;font-size:13px}
 """
 
 
 def html_report(run: Run, worst: int = 25) -> str:
     s, e = run.summary, html.escape
     cards = "".join(f"<div class='card'><b>{_fmt(k, v)}</b><span>{_label(k)}</span></div>" for k, v in s.items())
+    rk, hk = f"recall@{run.k}", f"hit@{run.k}"
+    tag_rows = "".join(
+        f"<tr><td>{e(tag)}</td><td>{t['cases']}</td><td>{_fmt(rk, t[rk])}</td>"
+        f"<td>{_fmt(hk, t[hk])}</td><td>{_fmt('mrr', t['mrr'])}</td></tr>"
+        for tag, t in _tag_rows(run)
+    )
+    by_tag = (
+        f"<h2>By category</h2><table><tr><th>Category</th><th>Questions</th><th>{_label(rk)}</th>"
+        f"<th>{_label(hk)}</th><th>MRR</th></tr>{tag_rows}</table>"
+        if tag_rows
+        else ""
+    )
     failing = sorted((c for c in run.cases if c.recall < 1 or c.error), key=lambda c: (c.recall, c.rr))
     rows = "".join(
         f"<tr><td>{e(c.query)}</td><td class='bad'>{', '.join(f'<code>{e(d)}</code>' for d in c.missed)}</td>"
@@ -111,11 +161,12 @@ def html_report(run: Run, worst: int = 25) -> str:
     table = (
         f"<h2>Questions that missed documents ({len(failing)} of {len(run.cases)})</h2>"
         f"<table><tr><th>Question</th><th>Missed</th><th>Got instead</th><th>Recall</th></tr>{rows}</table>"
-        if failing else "<p>Every question retrieved all of its relevant documents.</p>"
+        if failing
+        else "<p>Every question retrieved all of its relevant documents.</p>"
     )
     return (
         f"<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>ragcheck — {e(run.name)}</title>"
         f"<style>{_CSS}</style></head><body><h1>ragcheck — {e(run.name)}</h1>"
         f"<div class='meta'>System: <code>{e(run.retriever)}</code> · k = {run.k} · {e(run.created_at)}</div>"
-        f"<div class='cards'>{cards}</div>{table}<footer>Generated by ragcheck</footer></body></html>\n"
+        f"<div class='cards'>{cards}</div>{by_tag}{table}<footer>Generated by ragcheck</footer></body></html>\n"
     )

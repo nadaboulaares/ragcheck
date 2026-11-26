@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check src tests examples
+      - run: ruff format --check src tests examples
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
+      # Smoke test: the README's demo must keep working end to end.
+      - run: ragcheck run --config examples/acme-docs/ragcheck.toml --out runs/before.json --fail-under recall=0.8
+      - run: ragcheck run --cases questions.jsonl --python better_search:search -k 3 --out ../../runs/after.json
+        working-directory: examples/acme-docs
+      - run: ragcheck compare runs/before.json runs/after.json --fail-on-regression

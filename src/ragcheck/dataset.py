@@ -13,6 +13,7 @@ class Case:
     query: str
     relevant: tuple[str, ...]  # doc ids that should be retrieved
     answer_contains: tuple[str, ...] = field(default=())  # optional: phrases a correct answer includes
+    tags: tuple[str, ...] = field(default=())  # optional: categories for per-tag breakdowns ("billing", "account")
 
 
 class DatasetError(ValueError):
@@ -22,7 +23,7 @@ class DatasetError(ValueError):
 def load_cases(path: str | Path) -> list[Case]:
     """Load cases from JSONL (one object per line) or a JSON list.
 
-    Each object: {"query": "...", "relevant": ["doc-a", ...], "id"?: "...", "answer_contains"?: [...]}
+    Each object: {"query": "...", "relevant": ["doc-a", ...], "id"?: "...", "answer_contains"?: [...], "tags"?: [...]}
     """
     path = Path(path)
     text = path.read_text(encoding="utf-8")
@@ -56,7 +57,12 @@ def load_cases(path: str | Path) -> list[Case]:
         answer = row.get("answer_contains") or []
         if isinstance(answer, str):
             answer = [answer]
-        cases.append(Case(case_id, query, tuple(map(str, relevant)), tuple(map(str, answer))))
+        tags = row.get("tags") or []
+        if isinstance(tags, str):
+            tags = [tags]
+        cases.append(
+            Case(case_id, query, tuple(map(str, relevant)), tuple(map(str, answer)), tuple(sorted(set(map(str, tags)))))
+        )
     if not cases:
         raise DatasetError(f"{path}: no cases found")
     return cases

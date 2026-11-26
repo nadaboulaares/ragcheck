@@ -52,7 +52,12 @@ def test_answer_check():
 
 def test_load_jsonl_and_json(tmp_path):
     f = tmp_path / "q.jsonl"
-    f.write_text('# comment\n{"query": "a?", "relevant": "doc1"}\n\n{"id": "x", "query": "b?", "relevant": ["d2", "d3"], "answer_contains": "yes"}\n')
+    f.write_text(
+        "# comment\n"
+        '{"query": "a?", "relevant": "doc1"}\n'
+        "\n"
+        '{"id": "x", "query": "b?", "relevant": ["d2", "d3"], "answer_contains": "yes"}\n'
+    )
     cases = load_cases(f)
     assert cases[0] == Case("q1", "a?", ("doc1",))
     assert cases[1] == Case("x", "b?", ("d2", "d3"), ("yes",))
@@ -123,8 +128,10 @@ def search_server():
                 self.send_response(500)
                 self.end_headers()
                 return
-            payload = {"data": {"hits": [{"doc": {"id": "billing/refunds"}}, {"doc": {"id": "x"}}]},
-                       "answer": "Refunds are possible within 30 days."}
+            payload = {
+                "data": {"hits": [{"doc": {"id": "billing/refunds"}}, {"doc": {"id": "x"}}]},
+                "answer": "Refunds are possible within 30 days.",
+            }
             out = json.dumps(payload).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -180,10 +187,12 @@ CASES = [
 
 
 def test_run_summary_and_reports():
-    fake = FakeRetriever({
-        "refund?": (["billing/refunds", "x"], "Within 30 days."),
-        "cancel?": (["account/delete", "billing/cancel"], None),
-    })
+    fake = FakeRetriever(
+        {
+            "refund?": (["billing/refunds", "x"], "Within 30 days."),
+            "cancel?": (["account/delete", "billing/cancel"], None),
+        }
+    )
     result = run(CASES, fake, k=2, name="demo")
     s = result.summary
     assert s["recall@2"] == 1.0 and s["mrr"] == pytest.approx(0.75)  # (1 + 1/2) / 2
@@ -195,8 +204,10 @@ def test_run_summary_and_reports():
 
 
 def test_run_roundtrip_and_compare(tmp_path):
-    before = run(CASES, FakeRetriever({"refund?": (["x"], None), "cancel?": (["billing/cancel"], None)}), k=3, name="before")
-    after = run(CASES, FakeRetriever({"refund?": (["billing/refunds"], None), "cancel?": (["y"], None)}), k=3, name="after")
+    before_sys = FakeRetriever({"refund?": (["x"], None), "cancel?": (["billing/cancel"], None)})
+    after_sys = FakeRetriever({"refund?": (["billing/refunds"], None), "cancel?": (["y"], None)})
+    before = run(CASES, before_sys, k=3, name="before")
+    after = run(CASES, after_sys, k=3, name="after")
     before.save(tmp_path / "b.json")
     loaded = Run.load(tmp_path / "b.json")
     assert loaded.summary == before.summary
@@ -232,8 +243,24 @@ def test_cli_demo_end_to_end(tmp_path, monkeypatch, capsys):
     before, after, page = tmp_path / "before.json", tmp_path / "after.json", tmp_path / "r.html"
     assert main(["run", "--config", str(DEMO / "ragcheck.toml"), "--out", str(before)]) == 0
     monkeypatch.chdir(DEMO)
-    assert main(["run", "--cases", "questions.jsonl", "--python", "better_search:search", "-k", "3",
-                 "--out", str(after), "--html", str(page)]) == 0
+    assert (
+        main(
+            [
+                "run",
+                "--cases",
+                "questions.jsonl",
+                "--python",
+                "better_search:search",
+                "-k",
+                "3",
+                "--out",
+                str(after),
+                "--html",
+                str(page),
+            ]
+        )
+        == 0
+    )
     assert page.read_text().startswith("<!DOCTYPE html>")
     capsys.readouterr()
     assert main(["compare", str(before), str(after)]) == 0
@@ -255,3 +282,97 @@ def test_cli_usage_errors(tmp_path, capsys):
     bad = tmp_path / "bad.jsonl"
     bad.write_text('{"query": "x"}')
     assert main(["run", "--cases", str(bad), "--bm25", str(DEMO / "corpus")]) == 2
+
+
+# --- per-category breakdown --------------------------------------------------------------
+
+
+def test_tags_parsed_deduped_and_optional(tmp_path):
+    f = tmp_path / "q.jsonl"
+    f.write_text(
+        '{"query": "a", "relevant": ["d"], "tags": "billing"}\n'
+        '{"query": "b", "relevant": ["d"], "tags": ["x", "billing", "x"]}\n'
+        '{"query": "c", "relevant": ["d"]}\n'
+    )
+    assert [c.tags for c in load_cases(f)] == [("billing",), ("billing", "x"), ()]
+
+
+def test_by_tag_summary_reports_and_compare():
+    cases = [
+        Case("q1", "refund?", ("billing/refunds",), tags=("billing",)),
+        Case("q2", "cancel?", ("billing/cancel",), tags=("billing",)),
+        Case("q3", "2fa?", ("account/2fa",), tags=("account",)),
+    ]
+    before = run(
+        cases,
+        FakeRetriever(
+            {
+                "refund?": (["billing/refunds"], None),
+                "cancel?": (["x"], None),
+                "2fa?": (["account/2fa"], None),
+            }
+        ),
+        k=3,
+        name="before",
+    )
+    tags = before.by_tag()
+    assert tags["billing"]["cases"] == 2 and tags["billing"]["recall@3"] == 0.5
+    assert tags["account"]["recall@3"] == 1.0
+
+    md = markdown(before)
+    # worst category first: that's where the audit should look
+    assert md.index("| billing | 2 | 50.0%") < md.index("| account | 1 | 100.0%")
+    assert "<h2>By category</h2>" in html_report(before)
+
+    after = run(
+        cases,
+        FakeRetriever(
+            {
+                "refund?": (["billing/refunds"], None),
+                "cancel?": (["billing/cancel"], None),
+                "2fa?": (["account/2fa"], None),
+            }
+        ),
+        k=3,
+        name="after",
+    )
+    cmp = compare(before, after)
+    assert cmp.tag_deltas["billing"] == (0.5, 1.0, 0.5)
+    assert cmp.tag_deltas["account"] == (1.0, 1.0, 0.0)
+    assert "| billing | 50.0% | 100.0% | +50.0 pts |" in comparison_markdown(cmp)
+
+
+def test_reports_without_tags_have_no_category_section():
+    result = run(CASES, FakeRetriever({"refund?": (["x"], None), "cancel?": (["y"], None)}), k=2)
+    assert result.by_tag() == {}
+    assert "By category" not in markdown(result) and "By category" not in html_report(result)
+
+
+def test_runs_saved_before_tags_existed_still_load(tmp_path):
+    old = {
+        "name": "old",
+        "retriever": "fake",
+        "k": 3,
+        "created_at": "2026-11-25T00:00:00+00:00",
+        "summary": {},
+        "cases": [
+            {
+                "id": "q1",
+                "query": "a",
+                "relevant": ["d"],
+                "retrieved": ["d"],
+                "recall": 1.0,
+                "precision": 1 / 3,
+                "hit": 1.0,
+                "rr": 1.0,
+                "ndcg": 1.0,
+                "latency_ms": 1.0,
+                "answer_ok": None,
+                "error": None,
+            }
+        ],
+    }
+    f = tmp_path / "old.json"
+    f.write_text(json.dumps(old))
+    loaded = Run.load(f)
+    assert loaded.cases[0].tags == [] and loaded.summary["recall@3"] == 1.0

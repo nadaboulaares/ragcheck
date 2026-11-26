@@ -1,15 +1,15 @@
-{"id": "price-pro", "query": "How much does the Pro plan cost?", "relevant": ["billing/plans"]}
-{"id": "refund-window", "query": "Can I get my money back after buying?", "relevant": ["billing/refunds"]}
-{"id": "cancel", "query": "How do I cancel my subscription?", "relevant": ["billing/cancel"]}
-{"id": "stop-paying", "query": "I want to stop paying, how?", "relevant": ["billing/cancel"]}
-{"id": "receipt", "query": "Where can I download a receipt for my company?", "relevant": ["billing/invoices"]}
-{"id": "forgot-pw", "query": "I forgot my password", "relevant": ["account/password"]}
-{"id": "locked-out", "query": "I lost my phone and can't log in", "relevant": ["account/2fa"]}
-{"id": "close-account", "query": "Close my account and remove all my data", "relevant": ["account/delete"]}
-{"id": "backup", "query": "How do I back up everything to my computer?", "relevant": ["features/export"]}
-{"id": "no-internet", "query": "Does it work on a plane without wifi?", "relevant": ["features/offline"]}
-{"id": "collab", "query": "Can my coworker edit the same notebook?", "relevant": ["features/sharing"]}
-{"id": "undo", "query": "Restore an older version of a page", "relevant": ["features/version-history"]}
-{"id": "big-file", "query": "What is the maximum upload size for files?", "relevant": ["features/attachments"]}
-{"id": "sso", "query": "Which plan has SSO?", "relevant": ["billing/plans"]}
-{"id": "recovered-deleted", "query": "I deleted a page by mistake, can I get it back?", "relevant": ["features/version-history"]}
+{"id": "price-pro", "query": "How much does the Pro plan cost?", "relevant": ["billing/plans"], "tags": ["billing"]}
+{"id": "refund-window", "query": "Can I get my money back after buying?", "relevant": ["billing/refunds"], "tags": ["billing"]}
+{"id": "cancel", "query": "How do I cancel my subscription?", "relevant": ["billing/cancel"], "tags": ["billing"]}
+{"id": "stop-paying", "query": "I want to stop paying, how?", "relevant": ["billing/cancel"], "tags": ["billing"]}
+{"id": "receipt", "query": "Where can I download a receipt for my company?", "relevant": ["billing/invoices"], "tags": ["billing"]}
+{"id": "forgot-pw", "query": "I forgot my password", "relevant": ["account/password"], "tags": ["account"]}
+{"id": "locked-out", "query": "I lost my phone and can't log in", "relevant": ["account/2fa"], "tags": ["account"]}
+{"id": "close-account", "query": "Close my account and remove all my data", "relevant": ["account/delete"], "tags": ["account"]}
+{"id": "backup", "query": "How do I back up everything to my computer?", "relevant": ["features/export"], "tags": ["features"]}
+{"id": "no-internet", "query": "Does it work on a plane without wifi?", "relevant": ["features/offline"], "tags": ["features"]}
+{"id": "collab", "query": "Can my coworker edit the same notebook?", "relevant": ["features/sharing"], "tags": ["features"]}
+{"id": "undo", "query": "Restore an older version of a page", "relevant": ["features/version-history"], "tags": ["features"]}
+{"id": "big-file", "query": "What is the maximum upload size for files?", "relevant": ["features/attachments"], "tags": ["features"]}
+{"id": "sso", "query": "Which plan has SSO?", "relevant": ["billing/plans"], "tags": ["billing"]}
+{"id": "recovered-deleted", "query": "I deleted a page by mistake, can I get it back?", "relevant": ["features/version-history"], "tags": ["features"]}
